@@ -1,5 +1,7 @@
+using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
 using OpenQA.Selenium.Appium.Windows;
+using System.Threading;
 
 namespace UltimatePhotoEditor
 {
@@ -8,30 +10,33 @@ namespace UltimatePhotoEditor
         private const string appiumServer = "http://127.0.0.1:4723/wd/hub";
         private const string appIdentificator = "35450PhotoCoolApps.UltimatePhotoEditor_61cxy7b35vdsg!App";
         private WindowsDriver<WindowsElement> driver;
-        private AppiumOptions options;  
+        private AppiumOptions options;
+        private const string appFolderPath = @"D:\Documents\Pictures\Ultimate Photo Editor";
 
         [SetUp]
         public void Setup()
         {
             this.options = new AppiumOptions();
             options.AddAdditionalCapability("app", appIdentificator);
-            this.driver = new WindowsDriver<WindowsElement> (new Uri(appiumServer), options);    
+            this.driver = new WindowsDriver<WindowsElement>(new Uri(appiumServer), options);
 
 
         }
 
         [TearDown]
 
-        public void CloseApp() 
-        { 
-            driver.Quit(); 
-        
-        } 
+        public void CloseApp()
+        {
+            driver.Quit();
+
+        }
 
         [Test]
         public void Test_EditPhoto()
         {
             var createdPhoto = DateTime.Now.Ticks.ToString();
+            string savedImageFileName = $"{createdPhoto}.jpg"; // Adjust the file extension if needed
+
             Thread.Sleep(6000);
 
             var galleryButton = driver.FindElementByName("GALLERY");
@@ -82,7 +87,7 @@ namespace UltimatePhotoEditor
             Thread.Sleep(10000);
 
             var txtFileName = driver.FindElementByAccessibilityId("txtFilename");
-            txtFileName.Clear();    
+            txtFileName.Clear();
             txtFileName.SendKeys(createdPhoto);
 
             Thread.Sleep(6000);
@@ -90,7 +95,7 @@ namespace UltimatePhotoEditor
             var folderPath = driver.FindElementByName("Popup");
             folderPath.Click();
 
-            Thread.Sleep(10000);          
+            Thread.Sleep(3000);
 
 
             var jpgFormat = driver.FindElementByName("JPG");
@@ -98,13 +103,35 @@ namespace UltimatePhotoEditor
 
             Thread.Sleep(3000);
 
-            var saveImageButton = driver.FindElementByName("Save Image");
+            // Assuming the main window is already located
+            var mainWindow = driver.FindElementByClassName("ApplicationFrameWindow");
+
+            // Locate the child element within the main window that is unique to the popup
+            var popupTitle = mainWindow.FindElementByXPath("//Window[@ClassName='Popup']/Text[@ClassName='TextBlock' and @Name='Save Image']");
+
+            // Assuming the main window is already located
+            mainWindow = driver.FindElementByClassName("ApplicationFrameWindow");
+
+            // Locate the "Save Image" button within the main window
+            var saveImageButton = mainWindow.FindElementByXPath("//Window[@ClassName='Popup']/Text[@Name='Save Image' and @AutomationId='TxtOffToggle']");
             saveImageButton.Click();
 
             Thread.Sleep(3000);
 
-            Assert.That(createdPhoto + ".jpg", Is.Not.Null);
-            
+            var okButtonFinal = driver.FindElementByAccessibilityId("SecondryBtnText");
+            okButtonFinal.Click();
+
+
+            Thread.Sleep(5000);
+
+            string fullPathToSavedImage = Path.Combine(appFolderPath, savedImageFileName);
+
+            Thread.Sleep(3000);
+
+            // Assert that the file exists
+            Assert.IsTrue(File.Exists(fullPathToSavedImage), $"The saved image file '{savedImageFileName} was found in the app folder.");
         }
-    }
+
+    }  
+           
 }
